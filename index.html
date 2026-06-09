@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Jaquetas Jeans Customizadas</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#111;
+  color:white;
+  margin:0;
+  padding:15px;
+}
+h1,h2{text-align:center;color:#00d4ff;}
+.box{
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  border:1px solid #00d4ff;
+}
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  border-radius:6px;
+  border:none;
+}
+button{
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+.add{background:#00d4ff;color:#000;}
+.pdf{background:#ffd700;}
+.clear{background:#ff4444;color:white;}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  font-size:13px;
+}
+th,td{
+  border:1px solid #555;
+  padding:7px;
+  text-align:center;
+}
+th{background:#003344;color:#00d4ff;}
+.total{
+  font-size:18px;
+  font-weight:bold;
+  color:#00ff88;
+}
+@media print{
+  button,.formulario{display:none;}
+  body{background:white;color:black;}
+  .box{border:1px solid #000;color:black;}
+  th{color:black;background:#ddd;}
+}
+</style>
+</head>
+
+<body>
+
+<h1>Controle de Entrada e Saída de Jaquetas Jeans Customizadas</h1>
+
+<div class="box formulario">
+<h2>Cadastro da Jaqueta</h2>
+
+<label>Data de Entrada</label>
+<input type="date" id="dataEntrada">
+
+<label>Data de Saída / Venda</label>
+<input type="date" id="dataSaida">
+
+<label>Nome / Código da Peça</label>
+<input type="text" id="peca" placeholder="Ex: Jaqueta Jeans MJ 001">
+
+<label>Quantidade de Pedras Usadas</label>
+<input type="number" id="pedras" value="0">
+
+<label>Quantidade de Pedras Extras</label>
+<input type="number" id="extras" value="0">
+
+<label>Custo da Compra da Jaqueta</label>
+<input type="number" id="custoJaqueta" value="0">
+
+<label>Custo das Pedras / Materiais</label>
+<input type="number" id="custoPedras" value="0">
+
+<label>Outros Gastos</label>
+<input type="number" id="outrosGastos" value="0">
+
+<label>Valor da Mão de Obra</label>
+<input type="number" id="maoObra" value="0">
+
+<label>Valor de Venda da Jaqueta Customizada</label>
+<input type="number" id="valorVenda" value="0">
+
+<label>Observações</label>
+<textarea id="obs" placeholder="Descreva detalhes da customização, brilho, bordado, tempo de trabalho..."></textarea>
+
+<button class="add" onclick="adicionarRegistro()">Adicionar ao Histórico</button>
+<button class="pdf" onclick="window.print()">Salvar / Imprimir em PDF</button>
+<button class="clear" onclick="limparHistorico()">Limpar Histórico</button>
+</div>
+
+<div class="box">
+<h2>Resumo Geral</h2>
+<p>Total de Gastos: <span class="total" id="totalGastos">R$ 0,00</span></p>
+<p>Total de Vendas: <span class="total" id="totalVendas">R$ 0,00</span></p>
+<p>Lucro Total: <span class="total" id="lucroTotal">R$ 0,00</span></p>
+</div>
+
+<div class="box">
+<h2>Histórico de Entrada e Saída</h2>
+
+<table>
+<thead>
+<tr>
+<th>Entrada</th>
+<th>Saída</th>
+<th>Peça</th>
+<th>Pedras</th>
+<th>Extras</th>
+<th>Gasto Total</th>
+<th>Mão de Obra</th>
+<th>Venda</th>
+<th>Lucro</th>
+<th>Obs.</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
+</div>
+
+<script>
+let registros = JSON.parse(localStorage.getItem("historicoJaquetas")) || [];
+
+function dinheiro(valor){
+  return valor.toLocaleString("pt-BR", {
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+function adicionarRegistro(){
+  const dataEntrada = document.getElementById("dataEntrada").value;
+  const dataSaida = document.getElementById("dataSaida").value;
+  const peca = document.getElementById("peca").value;
+
+  const pedras = Number(document.getElementById("pedras").value);
+  const extras = Number(document.getElementById("extras").value);
+  const custoJaqueta = Number(document.getElementById("custoJaqueta").value);
+  const custoPedras = Number(document.getElementById("custoPedras").value);
+  const outrosGastos = Number(document.getElementById("outrosGastos").value);
+  const maoObra = Number(document.getElementById("maoObra").value);
+  const valorVenda = Number(document.getElementById("valorVenda").value);
+  const obs = document.getElementById("obs").value;
+
+  const gastoTotal = custoJaqueta + custoPedras + outrosGastos + maoObra;
+  const lucro = valorVenda - gastoTotal;
+
+  const registro = {
+    dataEntrada,
+    dataSaida,
+    peca,
+    pedras,
+    extras,
+    custoJaqueta,
+    custoPedras,
+    outrosGastos,
+    maoObra,
+    valorVenda,
+    gastoTotal,
+    lucro,
+    obs
+  };
+
+  registros.push(registro);
+  localStorage.setItem("historicoJaquetas", JSON.stringify(registros));
+  mostrarRegistros();
+  limparCampos();
+}
+
+function mostrarRegistros(){
+  const tabela = document.getElementById("tabela");
+  tabela.innerHTML = "";
+
+  let totalGastos = 0;
+  let totalVendas = 0;
+  let lucroTotal = 0;
+
+  registros.forEach(r => {
+    totalGastos += r.gastoTotal;
+    totalVendas += r.valorVenda;
+    lucroTotal += r.lucro;
+
+    tabela.innerHTML += `
+      <tr>
+        <td>${r.dataEntrada}</td>
+        <td>${r.dataSaida}</td>
+        <td>${r.peca}</td>
+        <td>${r.pedras}</td>
+        <td>${r.extras}</td>
+        <td>${dinheiro(r.gastoTotal)}</td>
+        <td>${dinheiro(r.maoObra)}</td>
+        <td>${dinheiro(r.valorVenda)}</td>
+        <td>${dinheiro(r.lucro)}</td>
+        <td>${r.obs}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("totalGastos").innerText = dinheiro(totalGastos);
+  document.getElementById("totalVendas").innerText = dinheiro(totalVendas);
+  document.getElementById("lucroTotal").innerText = dinheiro(lucroTotal);
+}
+
+function limparCampos(){
+  document.querySelectorAll("input, textarea").forEach(campo => {
+    if(campo.type === "number") campo.value = 0;
+    else campo.value = "";
+  });
+}
+
+function limparHistorico(){
+  if(confirm("Deseja apagar todo o histórico?")){
+    registros = [];
+    localStorage.removeItem("historicoJaquetas");
+    mostrarRegistros();
+  }
+}
+
+mostrarRegistros();
+</script>
+<hr>
+<a href="index01.html"><h2>01</h2></a>
+</body>
+</html>
